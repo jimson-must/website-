@@ -17,7 +17,7 @@
         <td><input type="time" name="start_{{ p.id }}" value="{{ p.start_time }}" aria-label="Start"></td>
         <td><input type="time" name="end_{{ p.id }}" value="{{ p.end_time }}" aria-label="End"></td>
         <td><div class="checks"><label><input type="checkbox" name="break_{{ p.id }}" {{ 'checked' if p.is_break }}> Break</label></div></td>
-        <td><button class="btn sm danger" formaction="{{ url_for('dos_period_delete', pid=p.id) }}" formmethod="post" formnovalidate data-confirm-btn
+        <td><button class="btn sm danger" name="confirm" value="yes" formaction="{{ url_for('dos_period_delete', pid=p.id) }}" formmethod="post" formnovalidate data-confirm-btn
              onclick="return confirm('Delete {{ p.label }} and every lesson in it?')">{{ icon('trash', 15) }}</button></td>
       </tr>
     {% endfor %}

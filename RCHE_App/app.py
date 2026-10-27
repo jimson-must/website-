@@ -14,6 +14,7 @@ import secrets
 import socket
 import threading
 import webbrowser
+from urllib.parse import urlsplit
 from functools import wraps
 
 from flask import (Flask, Response, abort, flash, g, jsonify, redirect, render_template, request,
@@ -142,6 +143,8 @@ def now():
 
 
 def client_ip():
+    # Keep local-network enforcement safe by using the direct peer address only.
+    # Reverse-proxy headers are intentionally ignored unless a trusted proxy setup is added.
     return request.remote_addr or ""
 
 
@@ -218,6 +221,17 @@ def roles_required(*roles):
             return f(*a, **kw)
         return wrapper
     return deco
+
+
+def _safe_next_url(value):
+    if not value:
+        return ""
+    p = urlsplit(value)
+    if p.scheme or p.netloc:
+        return ""
+    if not p.path.startswith("/") or p.path.startswith("//"):
+        return ""
+    return value
 
 
 @app.template_filter("hm")
@@ -333,8 +347,8 @@ def login():
             conn.commit()
             g.user = u
             audit("login", "Signed in")
-            nxt = request.args.get("next", "")
-            return redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else url_for("dashboard"))
+            nxt = _safe_next_url(request.args.get("next", ""))
+            return redirect(nxt or url_for("dashboard"))
         else:
             if u:
                 fails = u["failed_count"] + 1
@@ -568,9 +582,15 @@ def api_notifications_read():
     conn = db()
     data = request.get_json(silent=True) or {}
     n = L.ts(now())
-    if data.get("id"):
+    if "id" in data:
+        try:
+            nid = int(data.get("id"))
+        except (TypeError, ValueError):
+            return jsonify(error="Invalid notification ID."), 400
+        if nid <= 0:
+            return jsonify(error="Invalid notification ID."), 400
         conn.execute("UPDATE notifications SET read_at=? WHERE id=? AND user_id=? AND read_at IS NULL",
-                     (n, int(data["id"]), g.user["id"]))
+                     (n, nid, g.user["id"]))
     else:
         conn.execute("UPDATE notifications SET read_at=? WHERE user_id=? AND read_at IS NULL", (n, g.user["id"]))
     conn.commit()
@@ -712,12 +732,18 @@ def dos_cell():
     return back
 
 
-def _valid_hm(s):
+def _normalise_hm(value):
     try:
-        h, m = [int(x) for x in s.split(":")]
-        return 0 <= h < 24 and 0 <= m < 60
-    except Exception:
-        return False
+        h, m = [int(x) for x in str(value).split(":")]
+        if 0 <= h < 24 and 0 <= m < 60:
+            return "%02d:%02d" % (h, m)
+    except (TypeError, ValueError):
+        pass
+    return None
+
+
+def _valid_hm(s):
+    return _normalise_hm(s) is not None
 
 
 @app.route("/dos/periods", methods=["GET", "POST"])
@@ -728,19 +754,21 @@ def dos_periods():
         ok = True
         for p in L.periods(conn):
             label = request.form.get("label_%d" % p["id"], "").strip()[:30]
-            s = request.form.get("start_%d" % p["id"], "")
-            e = request.form.get("end_%d" % p["id"], "")
+            s = _normalise_hm(request.form.get("start_%d" % p["id"], ""))
+            e = _normalise_hm(request.form.get("end_%d" % p["id"], ""))
             brk = 1 if request.form.get("break_%d" % p["id"]) else 0
-            if label and _valid_hm(s) and _valid_hm(e) and s < e:
+            if label and s and e and s < e:
                 conn.execute("UPDATE periods SET label=?, start_time=?, end_time=?, is_break=? WHERE id=?",
-                             (label, s.zfill(5), e.zfill(5), brk, p["id"]))
+                             (label, s, e, brk, p["id"]))
             else:
                 ok = False
-        nl, ns, ne = (request.form.get(k, "").strip() for k in ("new_label", "new_start", "new_end"))
+        nl = request.form.get("new_label", "").strip()
+        ns = _normalise_hm(request.form.get("new_start", ""))
+        ne = _normalise_hm(request.form.get("new_end", ""))
         if nl or ns or ne:
-            if nl and _valid_hm(ns) and _valid_hm(ne) and ns < ne:
+            if nl and ns and ne and ns < ne:
                 conn.execute("INSERT INTO periods(label,start_time,end_time,is_break) VALUES(?,?,?,?)",
-                             (nl[:30], ns.zfill(5), ne.zfill(5), 1 if request.form.get("new_break") else 0))
+                             (nl[:30], ns, ne, 1 if request.form.get("new_break") else 0))
             else:
                 ok = False
         conn.commit()
@@ -754,8 +782,13 @@ def dos_periods():
 @app.route("/dos/periods/<int:pid>/delete", methods=["POST"])
 @roles_required("dos", "admin")
 def dos_period_delete(pid):
-    db().execute("DELETE FROM periods WHERE id=?", (pid,))
-    db().commit()
+    conn = db()
+    linked = conn.execute("SELECT COUNT(*) FROM timetable WHERE period_id=?", (pid,)).fetchone()[0]
+    if linked and request.form.get("confirm") != "yes":
+        flash("This period has %d timetable lesson(s). Submit again with delete confirmation." % linked, "warn")
+        return redirect(url_for("dos_periods"))
+    conn.execute("DELETE FROM periods WHERE id=?", (pid,))
+    conn.commit()
     audit("period_delete", "#%d" % pid)
     flash("Period removed along with its lessons.", "ok")
     return redirect(url_for("dos_periods"))
@@ -887,6 +920,17 @@ def leave_new():
         flash("Choose a valid start and end date.", "err")
         return redirect(url_for("leave"))
     n = now()
+    if start < n.date():
+        flash("Leave cannot start in the past.", "err")
+        return redirect(url_for("leave"))
+    if start.weekday() > 4 or end.weekday() > 4:
+        flash("Leave must start and end on school days. Friday to Monday is allowed.", "err")
+        return redirect(url_for("leave"))
+    school_days = sum(1 for i in range((end - start).days + 1)
+                      if (start + dt.timedelta(days=i)).weekday() < 5)
+    if school_days <= 0 or school_days > 60:
+        flash("Leave range is not allowed. Keep it within 1 to 60 school days.", "err")
+        return redirect(url_for("leave"))
     cur = conn.execute("INSERT INTO leave_requests(user_id,start_date,end_date,kind,reason,created_at) VALUES(?,?,?,?,?,?)",
                        (g.user["id"], L.dstr(start), L.dstr(end), kind, request.form.get("reason", "").strip()[:300], L.ts(n)))
     L.notify_roles(conn, APPROVERS, "leave", "Leave request: %s" % g.user["full_name"],

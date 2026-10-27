@@ -68,9 +68,13 @@ In **Settings**:
 ## Things to know
 
 - **How Wi-Fi attendance works.** A web app cannot read the Wi-Fi name. Instead the server checks that the request comes from the school network address range. A teacher on mobile data cannot check in. A teacher who shares their login or hotspot could, so keep accounts individual.
+- **Reverse proxy note.** This local build intentionally trusts the direct client socket address only (`remote_addr`) and does not trust forwarded headers (`X-Forwarded-For`). If you deploy behind a trusted proxy, configure proxy trust first or Wi-Fi/IP checks will see the proxy IP.
 - **Notifications** appear while the app is open in a tab or installed app. Pushing alerts to a closed phone needs an internet-facing HTTPS server, which this local version does not include.
 - **Keep the computer running** during school hours. The 30-minute alerts and the daily PDF are produced by this program, so it must be on and the window left open.
 - **Time zone** is Africa/Kampala. Change with the `RCHE_TZ` environment variable.
 - **Font.** The design asks for SF Pro Display. Apple does not allow it to be bundled, so Apple devices use it automatically and Windows and Android fall back to the closest system font (Segoe UI Variable or Roboto).
-- **Data** lives in `instance/rche.db`. Back up that file. PDFs are in `instance/reports`.
+- **Data** lives in `instance/rche.db`. PDFs are in `instance/reports`.
+- **Schema updates and backups.** On startup, the app safely adds missing known columns for older databases. Before those migrations, it writes a timestamped backup next to the database (`instance/rche.db.bak.YYYYMMDD_HHMMSS`).
+- **Leave dates.** Leave must start and end on school days, cannot start in the past, and must stay within 1-60 school days. Friday-to-Monday leave is valid.
+- **Period deletion safety.** Deleting a period that is used in timetable lessons now requires an explicit delete confirmation from the submitted form.
 - **No Gradle.** Gradle builds native Android apps. This is a web app that installs on phones from the browser instead, so it needs no build step.

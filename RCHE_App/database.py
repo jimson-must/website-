@@ -2,6 +2,7 @@
 import random
 import sqlite3
 import datetime as dt
+import os
 from werkzeug.security import generate_password_hash
 
 DEFAULT_SETTINGS = {
@@ -127,7 +128,6 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TEXT NOT NULL,
     read_at TEXT
 );
-CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, read_at);
 
 CREATE TABLE IF NOT EXISTS leave_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -164,6 +164,36 @@ CREATE TABLE IF NOT EXISTS audit_log (
 """
 
 DEMO_PASSWORD = "Rche@2026"
+SCHEMA_VERSION = 1
+
+# Safe additive migrations for existing databases.
+COLUMN_MIGRATIONS = (
+    ("users", "department", "TEXT NOT NULL DEFAULT ''"),
+    ("users", "phone", "TEXT NOT NULL DEFAULT ''"),
+    ("users", "email", "TEXT NOT NULL DEFAULT ''"),
+    ("users", "must_change", "INTEGER NOT NULL DEFAULT 0"),
+    ("users", "failed_count", "INTEGER NOT NULL DEFAULT 0"),
+    ("users", "locked_until", "TEXT"),
+    ("users", "last_login", "TEXT"),
+    ("periods", "is_break", "INTEGER NOT NULL DEFAULT 0"),
+    ("timetable", "room", "TEXT NOT NULL DEFAULT ''"),
+    ("substitutions", "note", "TEXT NOT NULL DEFAULT ''"),
+    ("substitutions", "created_by", "INTEGER"),
+    ("day_attendance", "method", "TEXT NOT NULL DEFAULT ''"),
+    ("day_attendance", "ip", "TEXT NOT NULL DEFAULT ''"),
+    ("lesson_attendance", "ip", "TEXT NOT NULL DEFAULT ''"),
+    ("announcements", "audience", "TEXT NOT NULL DEFAULT 'all'"),
+    ("announcements", "priority", "TEXT NOT NULL DEFAULT 'normal'"),
+    ("announcements", "pinned", "INTEGER NOT NULL DEFAULT 0"),
+    ("notifications", "body", "TEXT NOT NULL DEFAULT ''"),
+    ("notifications", "link", "TEXT NOT NULL DEFAULT ''"),
+    ("notifications", "read_at", "TEXT"),
+    ("leave_requests", "decision_note", "TEXT NOT NULL DEFAULT ''"),
+    ("reports", "generated_by", "TEXT NOT NULL DEFAULT 'System'"),
+    ("reports", "emailed", "INTEGER NOT NULL DEFAULT 0"),
+    ("audit_log", "detail", "TEXT NOT NULL DEFAULT ''"),
+    ("audit_log", "ip", "TEXT NOT NULL DEFAULT ''"),
+)
 
 PERIODS = [
     ("Period 1", "08:00", "08:40", 0),
@@ -218,10 +248,61 @@ def connect(path):
 def init_db(path, now):
     conn = connect(path)
     conn.executescript(SCHEMA)
+    _migrate_schema(conn, path)
+    _ensure_indexes(conn)
+    conn.execute("PRAGMA user_version=%d" % SCHEMA_VERSION)
     conn.commit()
     if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
         seed_demo(conn, now)
     conn.close()
+
+
+def _table_columns(conn, table):
+    return {r["name"] for r in conn.execute("PRAGMA table_info(%s)" % table)}
+
+
+def ensure_column(conn, table, column, definition):
+    if column in _table_columns(conn, table):
+        return False
+    conn.execute("ALTER TABLE %s ADD COLUMN %s %s" % (table, column, definition))
+    return True
+
+
+def _backup_database(conn, path):
+    if not path or not os.path.exists(path):
+        return ""
+    stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = "%s.bak.%s" % (path, stamp)
+    copy = sqlite3.connect(backup_path)
+    try:
+        conn.backup(copy)
+    finally:
+        copy.close()
+    return backup_path
+
+
+def _migrate_schema(conn, path):
+    missing = [
+        (table, column, definition)
+        for table, column, definition in COLUMN_MIGRATIONS
+        if column not in _table_columns(conn, table)
+    ]
+    if not missing:
+        return False
+    try:
+        backup = _backup_database(conn, path)
+        if backup:
+            print("Database backup created before migration: %s" % backup)
+    except sqlite3.DatabaseError as exc:
+        print("Warning: database backup failed before migration (%s)." % exc)
+    changed = False
+    for table, column, definition in missing:
+        changed = ensure_column(conn, table, column, definition) or changed
+    return changed
+
+
+def _ensure_indexes(conn):
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, read_at)")
 
 
 def _ts(d):
