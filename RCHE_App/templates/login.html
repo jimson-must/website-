@@ -1,0 +1,46 @@
+{% from '_macros.html' import icon, crest %}<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in | {{ school_name }}</title>
+<meta name="theme-color" content="#0B1F44">
+<meta name="csrf" content="{{ csrf() }}">
+<link rel="manifest" href="{{ url_for('manifest') }}">
+<link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+<div class="auth">
+  <section class="auth-art" aria-hidden="true">
+    <div class="row" style="gap:14px">{{ crest(46) }}<div><b style="font-size:19px;letter-spacing:-.02em">{{ school_name }}</b><div style="color:#9FB3E6;font-size:13px">Staff portal</div></div></div>
+    <div style="position:relative;z-index:2">
+      <h1>Every lesson, on time.</h1>
+      <p>Attendance, timetables and announcements for all staff, in one place.</p>
+      <ul>
+        <li>{{ icon('wifi', 20) }} Check in automatically on the school Wi-Fi</li>
+        <li>{{ icon('clock', 20) }} See your lesson in progress and your next one</li>
+        <li>{{ icon('file', 20) }} Daily attendance reports for academics</li>
+      </ul>
+    </div>
+    <div style="color:#7F93C7;font-size:13px;position:relative;z-index:2">Authorised staff only. Activity is logged.</div>
+  </section>
+  <section class="auth-form">
+    <form method="post" autocomplete="on">
+      <input type="hidden" name="_csrf" value="{{ csrf() }}">
+      <div class="row" style="margin-bottom:26px;display:none" id="m-brand"></div>
+      <h2>Sign in</h2>
+      <p class="muted" style="margin-bottom:22px">Use the username and password from the school office.</p>
+      {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% for cat, m in msgs %}<div class="flash {{ cat }}" role="alert">{{ m }}</div>{% endfor %}
+      {% endwith %}
+      <div class="field"><label for="u">Username</label><input id="u" name="username" type="text" autocomplete="username" autocapitalize="none" autofocus required></div>
+      <div class="field"><label for="p">Password</label><input id="p" name="password" type="password" autocomplete="current-password" required></div>
+      <button class="btn primary big" style="width:100%;margin-top:6px">Sign in</button>
+      <p class="hint" style="margin-top:18px">Forgot your password? Ask the system administrator to reset it.</p>
+    </form>
+  </section>
+</div>
+<script>try{var t=localStorage.getItem('rche-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+</body>
+</html>

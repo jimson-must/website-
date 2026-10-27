@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+{% block title %}Timetable editor{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Timetable editor</h1><p>Click any cell to set or change a lesson. Clashes are blocked and affected teachers are notified.</p></div>
+  <div class="row wrap">
+    <a class="btn" href="{{ url_for('dos_periods') }}">{{ icon('clock', 18) }} Periods and breaks</a>
+    <a class="btn" href="{{ url_for('dos_cover') }}">{{ icon('repeat', 18) }} Cover</a>
+  </div>
+</div>
+
+<div class="tabs">
+  {% for c in classes %}<a href="{{ url_for('dos_timetable', **{'class': c}) }}" class="{{ 'on' if c == cls }}">{{ c }}</a>{% endfor %}
+</div>
+
+<div class="panel"><div class="panel-b scroll-x" style="padding:12px">
+<table class="tt">
+  <thead><tr><th class="pl"></th>{% for d in DAYS %}<th>{{ d }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for p in periods %}
+    {% if p.is_break %}
+      <tr><td class="plabel"><b>{{ p.label }}</b><small>{{ p.start_time }} to {{ p.end_time }}</small></td><td class="brk" colspan="5">{{ p.label }}</td></tr>
+    {% else %}
+      <tr><td class="plabel"><b>{{ p.label }}</b><small>{{ p.start_time }} to {{ p.end_time }}</small></td>
+      {% for d in range(5) %}
+        {% set c = cells.get((p.id, d)) %}
+        <td class="editable {{ '' if c else 'empty-cell' }}" tabindex="0" role="button" data-edit
+            data-day="{{ d }}" data-period="{{ p.id }}" data-label="{{ cls }}, {{ DAYS[d] }}, {{ p.label }}"
+            {% if c %}data-teacher="{{ c.teacher_id }}" data-subject="{{ c.subject }}" data-room="{{ c.room }}"{% endif %}>
+          {% if c %}<b>{{ c.full_name }}</b><span>{{ c.subject }}{% if c.room %} &middot; {{ c.room }}{% endif %}</span>{% else %}+ Add{% endif %}
+        </td>
+      {% endfor %}</tr>
+    {% endif %}
+  {% endfor %}
+  </tbody>
+</table>
+</div></div>
+
+<div class="modal-back" id="cell-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cell-title">
+    <form method="post" action="{{ url_for('dos_cell') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf() }}">
+      <input type="hidden" name="class_name" value="{{ cls }}">
+      <input type="hidden" name="day"><input type="hidden" name="period_id">
+      <h3 id="cell-title">Lesson</h3>
+      <div class="mb">
+        <div class="field"><label for="f-teacher">Teacher</label>
+          <select id="f-teacher" name="teacher_id"><option value="">Choose a teacher</option>
+            {% for t in teachers %}<option value="{{ t.id }}" data-dept="{{ t.department }}">{{ t.full_name }} ({{ t.department }})</option>{% endfor %}
+          </select></div>
+        <div class="form-grid">
+          <div class="field"><label for="f-subject">Subject</label><input id="f-subject" name="subject" type="text" maxlength="60"></div>
+          <div class="field"><label for="f-room">Room</label><input id="f-room" name="room" type="text" maxlength="30"></div>
+        </div>
+      </div>
+      <div class="mf">
+        <button class="btn danger sm" id="cell-clear" name="action" value="clear" style="margin-right:auto" formnovalidate>Remove lesson</button>
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button class="btn primary" name="action" value="save">Save lesson</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, status, person, checkin_card %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Good {{ 'morning' if now_s < 43200 else 'afternoon' if now_s < 64800 else 'evening' }}, {{ user.full_name|firstname }}</h1>
+  <p>{{ ROLE_LABELS[user.role] }} &middot; school overview for today</p></div>
+  <div class="row wrap">
+    {% if user.role in ('hoa', 'principal', 'admin') %}<a class="btn" href="{{ url_for('reports') }}">{{ icon('file', 18) }} Daily reports</a>{% endif %}
+    {% if user.role in ('dos', 'admin') %}<a class="btn primary" href="{{ url_for('dos_timetable') }}">{{ icon('grid', 18) }} Edit timetable</a>{% endif %}
+  </div>
+</div>
+
+<div class="stack">
+  <div class="grid cols-4">
+    <div class="kpi ok"><b>{{ summary.present }}<small class="muted" style="font-size:16px;font-weight:500"> / {{ summary.total }}</small></b><span>Teachers in today</span></div>
+    <div class="kpi warn"><b>{{ summary.late }}</b><span>Arrived late</span></div>
+    <div class="kpi mute"><b>{{ summary.not_in + summary.absent }}</b><span>{{ 'Absent' if summary.absent else 'Not in yet' }}</span></div>
+    <div class="kpi"><b>{{ summary.leave }}</b><span>On approved leave</span></div>
+  </div>
+
+  {% if live.counts.unattended %}
+  <div class="flash err" style="margin:0">{{ icon('alert', 20) }}<div><b>{{ live.counts.unattended }} lesson{{ 's' if live.counts.unattended != 1 }} past the alert threshold.</b> <a href="{{ url_for('live') }}">Open live lessons</a></div></div>
+  {% endif %}
+
+  <div class="grid cols-2">
+    <div class="panel">
+      <div class="panel-h"><h3>Lessons right now</h3><a class="small" href="{{ url_for('live') }}">Full view</a></div>
+      <div data-live-url="{{ url_for('live_fragment') }}">{% include '_live_board.html' %}</div>
+    </div>
+
+    <div class="stack">
+      {% if cover %}
+      <div class="panel">
+        <div class="panel-h"><h3>Needs cover</h3>{% if user.role in ('dos', 'admin') %}<a class="small" href="{{ url_for('dos_cover') }}">Assign</a>{% endif %}</div>
+        {% for l in cover[:5] %}
+        <div class="row between" style="padding:12px 20px;border-bottom:1px solid var(--line-2)">
+          <div><b>{{ l.class_name }} &middot; {{ l.subject }}</b><div class="small muted">{{ l.period }} &middot; {{ l.teacher }}</div></div>
+          <span class="badge err">{{ l.reason }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div class="panel">
+        <div class="panel-h"><h3>Announcements</h3><a class="small" href="{{ url_for('announcements') }}">See all</a></div>
+        {% for a in anns[:3] %}
+        <div class="ann {{ 'urgent' if a.priority == 'urgent' }} {{ 'pinned' if a.pinned }}">
+          <h3>{{ a.title }}</h3><div class="ann-body small">{{ a.body|truncate(120) }}</div>
+        </div>
+        {% else %}<div class="empty"><b>Nothing posted</b></div>{% endfor %}
+      </div>
+      {% if pending_leave %}
+      <div class="panel"><div class="panel-b row between">
+        <div><b>{{ pending_leave }} leave request{{ 's' if pending_leave != 1 }}</b><div class="small muted">Waiting for a decision</div></div>
+        <a class="btn sm primary" href="{{ url_for('leave') }}">Review</a></div></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h"><h3>Teacher attendance, last 14 school days</h3>
+      <div class="legend"><span><i></i>Present</span><span><i class="g"></i>On time</span></div></div>
+    <div class="panel-b chart" data-series='{{ series|tojson|forceescape }}'></div>
+  </div>
+
+  <div class="grid cols-2">
+    <div class="panel">
+      <div class="panel-h"><h3>Today's register</h3><a class="small" href="{{ url_for('overview') }}">Full register</a></div>
+      <div class="scroll-x"><table class="tbl">
+        <thead><tr><th>Teacher</th><th>Check-in</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for r in rows[:8] %}
+          <tr><td>{{ person(r.user.full_name, r.user.department) }}</td><td class="num">{{ r.check_in or '-' }}</td><td>{{ status(r.status) }}</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+    </div>
+    <div class="stack">
+      {% if latest_report %}
+      <div class="panel"><div class="panel-b row between">
+        <div><b>Latest daily report</b><div class="small muted">{{ latest_report.report_date|dlabel }}</div></div>
+        {% if user.role in ('hoa', 'principal', 'admin') %}<a class="btn sm" href="{{ url_for('report_file', rid=latest_report.id, mode='view') }}" target="_blank">{{ icon('file', 16) }} Open PDF</a>{% endif %}
+      </div></div>
+      {% endif %}
+      {{ checkin_card() }}
+    </div>
+  </div>
+</div>
+{% endblock %}

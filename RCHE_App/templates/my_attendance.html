@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, status %}
+{% block title %}My attendance{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>My attendance</h1><p>Your last 30 days, school days only.</p></div></div>
+<div class="stack">
+  <div class="grid cols-4">
+    <div class="kpi ok"><b>{{ stats.punctuality }}%</b><span>Arrived on time</span></div>
+    <div class="kpi"><b>{{ stats.present + stats.late }}</b><span>Days present</span></div>
+    <div class="kpi warn"><b>{{ stats.late }}</b><span>Late arrivals</span></div>
+    <div class="kpi err"><b>{{ stats.absent }}</b><span>Absences</span></div>
+  </div>
+  <div class="panel"><div class="scroll-x"><table class="tbl">
+    <thead><tr><th>Date</th><th>Check-in</th><th>Check-out</th>{% if user.role == 'teacher' %}<th>Lessons confirmed</th>{% endif %}<th>Status</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr><td>{{ r.label }}</td><td class="num">{{ r.check_in or '-' }}</td><td class="num">{{ r.check_out or '-' }}</td>
+        {% if user.role == 'teacher' %}<td class="num">{{ r.attended }} / {{ r.lessons }}</td>{% endif %}<td>{{ status(r.status) }}</td></tr>
+    {% else %}<tr><td colspan="5"><div class="empty"><b>No records yet</b></div></td></tr>{% endfor %}
+    </tbody></table></div></div>
+</div>
+{% endblock %}

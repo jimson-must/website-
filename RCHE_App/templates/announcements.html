@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+{% block title %}Announcements{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Announcements</h1><p>Notices from the school office. Messages are shown only to the staff they are meant for.</p></div></div>
+
+<div class="grid {{ 'cols-2' if can_post }}">
+  <div class="panel">
+    {% for a in items %}
+    <article class="ann {{ 'urgent' if a.priority == 'urgent' }} {{ 'pinned' if a.pinned }} {{ 'new' if not a.is_read }}">
+      <h3>{{ a.title }}</h3>
+      <div class="ann-body">{{ a.body }}</div>
+      <div class="row between wrap xs muted">
+        <span>{{ a.author }} &middot; {{ a.created_at|dtlabel }} &middot; For {{ {'all': 'all staff', 'teachers': 'teachers', 'staff': 'non-teaching staff'}[a.audience] }}
+          {% if a.priority == 'urgent' %}&middot; <b style="color:var(--red)">Urgent</b>{% endif %}
+          {% if can_post and stats.get(a.id) %}&middot; Seen by {{ stats[a.id][0] }} of {{ stats[a.id][1] }}{% endif %}</span>
+        {% if can_post %}
+        <span class="row" style="gap:6px">
+          <form method="post" action="{{ url_for('announcement_pin', aid=a.id) }}"><input type="hidden" name="_csrf" value="{{ csrf() }}"><button class="btn sm ghost">{{ 'Unpin' if a.pinned else 'Pin' }}</button></form>
+          <form method="post" action="{{ url_for('announcement_delete', aid=a.id) }}" data-confirm="Delete this announcement for everyone?"><input type="hidden" name="_csrf" value="{{ csrf() }}"><button class="btn sm ghost" style="color:var(--red)">Delete</button></form>
+        </span>{% endif %}
+      </div>
+    </article>
+    {% else %}<div class="empty"><b>No announcements</b>New notices will appear here.</div>{% endfor %}
+  </div>
+
+  {% if can_post %}
+  <form method="post" action="{{ url_for('announcement_new') }}" class="panel" style="align-self:start">
+    <input type="hidden" name="_csrf" value="{{ csrf() }}">
+    <div class="panel-h"><h3>New announcement</h3></div>
+    <div class="panel-b">
+      <div class="field"><label for="a-title">Title</label><input id="a-title" name="title" type="text" maxlength="140" required></div>
+      <div class="field"><label for="a-body">Message</label><textarea id="a-body" name="body" maxlength="4000" required></textarea></div>
+      <div class="field"><label for="a-aud">Send to</label>
+        <select id="a-aud" name="audience"><option value="all">All staff</option><option value="teachers">Teachers only</option><option value="staff">Non-teaching staff only</option></select></div>
+      <div class="checks field"><label><input type="checkbox" name="priority" value="urgent"> Mark urgent</label><label><input type="checkbox" name="pinned" value="1"> Pin to top</label></div>
+      <button class="btn primary" style="width:100%">{{ icon('message', 18) }} Publish</button>
+      <p class="hint">Everyone in the audience gets a notification straight away.</p>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
