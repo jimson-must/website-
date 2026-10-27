@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, status %}
+{% block title %}Cover and substitutions{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Cover and substitutions</h1><p>Assign a free teacher to a lesson for one day. Both teachers are notified and the lesson moves to the cover teacher's screen.</p></div>
+  <div class="row wrap">
+    <a class="btn sm" href="{{ url_for('dos_cover', date=prev, filter=only) }}">Previous day</a>
+    <b>{{ date.strftime('%a %d %b %Y') }}</b>
+    <a class="btn sm" href="{{ url_for('dos_cover', date=nxt, filter=only) }}">Next day</a>
+  </div>
+</div>
+<div class="tabs">
+  <a href="{{ url_for('dos_cover', date=date.isoformat(), filter='attention') }}" class="{{ 'on' if only == 'attention' }}">Needs attention</a>
+  <a href="{{ url_for('dos_cover', date=date.isoformat(), filter='all') }}" class="{{ 'on' if only == 'all' }}">All lessons</a>
+</div>
+
+<div class="panel"><div class="scroll-x"><table class="tbl">
+  <thead><tr><th>Lesson</th><th>Scheduled teacher</th><th>Cover</th><th></th></tr></thead>
+  <tbody>
+  {% for l in lessons %}
+    <tr>
+      <td><b>{{ l.class_name }} &middot; {{ l.subject }}</b><div class="small muted">{{ l.period }} &middot; {{ l.start|hm }} to {{ l.end|hm }}</div></td>
+      <td>{{ l.teacher }}{% if l.status == 'unattended' %} <span class="badge err">Unattended</span>{% endif %}</td>
+      <td>
+        <form method="post" class="row wrap" style="gap:8px">
+          <input type="hidden" name="_csrf" value="{{ csrf() }}"><input type="hidden" name="entry_id" value="{{ l.entry_id }}"><input type="hidden" name="date" value="{{ date.isoformat() }}">
+          <select name="sub_id" style="min-width:190px;width:auto" aria-label="Cover teacher">
+            <option value="">{{ 'Change cover teacher' if l.sub_id else 'Choose a free teacher' }}</option>
+            {% for t in free[l.period_id] %}<option value="{{ t.id }}" {{ 'selected' if t.id == l.sub_id }}>{{ t.full_name }}</option>{% endfor %}
+          </select>
+          <button class="btn sm primary" name="action" value="assign">{{ 'Update' if l.sub_id else 'Assign' }}</button>
+          {% if l.sub_id %}<button class="btn sm" name="action" value="remove">Remove</button>{% endif %}
+        </form>
+        {% if l.sub_id %}<div class="small" style="margin-top:6px;color:var(--green)">Covered by <b>{{ l.sub }}</b></div>{% endif %}
+      </td>
+      <td></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4"><div class="empty"><b>{{ 'Nothing needs cover' if only == 'attention' else 'No lessons on this day' }}</b>
+      {% if only == 'attention' %}Lessons appear here when a lesson goes unattended or cover is already arranged.{% endif %}</div></td></tr>
+  {% endfor %}
+  </tbody></table></div></div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ title }}</h1><p>Week of {{ monday.strftime('%d %b %Y') }}. Cover arrangements are included.</p></div>
+  {% if user.role in ('dos', 'admin') %}<a class="btn primary" href="{{ url_for('dos_timetable') }}">{{ icon('edit', 18) }} Edit timetable</a>{% endif %}
+</div>
+
+{% if user.role != 'teacher' %}
+<div class="tabs" aria-label="Choose a teacher or class">
+  {% for t in teachers %}<a href="{{ url_for('timetable', teacher=t.id) }}" class="{{ 'on' if mode == 'teacher' and key == t.id }}">{{ t.full_name }}</a>{% endfor %}
+</div>
+<div class="tabs">
+  {% for c in classes %}<a href="{{ url_for('timetable', **{'class': c}) }}" class="{{ 'on' if mode == 'class' and key == c }}">{{ c }}</a>{% endfor %}
+</div>
+{% endif %}
+
+<div class="panel"><div class="panel-b scroll-x" style="padding:12px">
+<table class="tt">
+  <thead><tr><th class="pl"></th>{% for d in DAYS %}<th class="{{ 'today' if loop.index0 == today }}">{{ d }}{% if loop.index0 == today %} (today){% endif %}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for p in periods %}
+    {% if p.is_break %}
+      <tr><td class="plabel"><b>{{ p.label }}</b><small>{{ p.start_time }} to {{ p.end_time }}</small></td><td class="brk" colspan="5">{{ p.label }}</td></tr>
+    {% else %}
+      <tr><td class="plabel"><b>{{ p.label }}</b><small>{{ p.start_time }} to {{ p.end_time }}</small></td>
+      {% for d in range(5) %}
+        {% set c = cells.get((p.id, d)) %}
+        {% if c %}
+          <td class="{{ 't-today' if d == today }} {{ 't-now' if d == today and p.id in cur_periods }} {{ 't-cover' if c.tag == 'cover' }} {{ 't-covered' if c.tag == 'covered' }}">
+            <b>{{ c.title }}</b><span>{{ c.sub }}{% if c.room %} &middot; {{ c.room }}{% endif %}</span>
+            {% if c.tag == 'cover' %}<em class="tag">Cover{% if mode == 'teacher' %} for {{ c.other }}{% endif %}</em>{% elif c.tag == 'covered' %}<em class="tag">Covered by {{ c.other }}</em>{% endif %}
+          </td>
+        {% else %}<td class="empty-cell {{ 't-today' if d == today }}">Free</td>{% endif %}
+      {% endfor %}</tr>
+    {% endif %}
+  {% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% endblock %}

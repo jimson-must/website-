@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, status, checkin_card %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Hello, {{ user.full_name|firstname }}</h1><p>{{ user.department }}</p></div>
+</div>
+
+<div class="stack">
+  {{ checkin_card() }}
+
+  <div class="grid cols-2">
+    <div class="panel">
+      <div class="panel-h"><h3>Announcements</h3><a class="small" href="{{ url_for('announcements') }}">See all</a></div>
+      {% for a in anns %}
+      <div class="ann {{ 'urgent' if a.priority == 'urgent' }} {{ 'pinned' if a.pinned }} {{ 'new' if not a.is_read }}">
+        <h3>{{ a.title }}</h3>
+        <div class="ann-body small">{{ a.body|truncate(190) }}</div>
+        <div class="xs muted">{{ a.author }} &middot; {{ a.created_at|dtlabel }}</div>
+      </div>
+      {% else %}<div class="empty"><b>No announcements yet</b>Messages from the school office will appear here.</div>{% endfor %}
+    </div>
+
+    <div class="stack">
+      <div class="panel">
+        <div class="panel-h"><h3>Your last 30 days</h3><a class="small" href="{{ url_for('my_attendance') }}">Details</a></div>
+        <div class="panel-b grid" style="grid-template-columns:1fr 1fr;gap:12px">
+          <div class="kpi ok"><b>{{ stats.punctuality }}%</b><span>On time</span></div>
+          <div class="kpi"><b>{{ stats.present + stats.late }}</b><span>Days present</span></div>
+          <div class="kpi warn"><b>{{ stats.late }}</b><span>Late arrivals</span></div>
+          <div class="kpi err"><b>{{ stats.absent }}</b><span>Absences</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

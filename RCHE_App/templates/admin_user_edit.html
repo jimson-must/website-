@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+{% block title %}Edit {{ u.full_name }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ u.full_name }}</h1><p>Username <b>{{ u.username }}</b>{% if u.last_login %} &middot; last sign-in {{ u.last_login|dtlabel }}{% endif %}</p></div>
+  <a class="btn" href="{{ url_for('admin_users') }}">Back to users</a></div>
+<div class="grid cols-2">
+  <form method="post" class="panel">
+    <input type="hidden" name="_csrf" value="{{ csrf() }}"><input type="hidden" name="action" value="save">
+    <div class="panel-h"><h3>Details</h3></div>
+    <div class="panel-b">
+      <div class="field"><label for="e-name">Full name</label><input id="e-name" name="full_name" value="{{ u.full_name }}" type="text" required maxlength="80"></div>
+      <div class="form-grid">
+        <div class="field"><label for="e-role">Role</label>
+          <select id="e-role" name="role">{% for k, v in ROLE_LABELS.items() %}<option value="{{ k }}" {{ 'selected' if k == u.role }}>{{ v }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="e-dept">Department</label><input id="e-dept" name="department" value="{{ u.department }}" type="text" maxlength="60"></div>
+        <div class="field"><label for="e-phone">Phone</label><input id="e-phone" name="phone" value="{{ u.phone }}" type="text" maxlength="30"></div>
+        <div class="field"><label for="e-mail">Email</label><input id="e-mail" name="email" value="{{ u.email }}" type="email" maxlength="80"></div>
+      </div>
+      <div class="checks field"><label><input type="checkbox" name="active" {{ 'checked' if u.active }}> Account is active</label></div>
+      <button class="btn primary">Save changes</button>
+    </div>
+  </form>
+  <form method="post" class="panel" style="align-self:start" data-confirm="Reset the password for {{ u.full_name }}? They will be asked to choose a new one.">
+    <input type="hidden" name="_csrf" value="{{ csrf() }}"><input type="hidden" name="action" value="reset">
+    <div class="panel-h"><h3>Password</h3></div>
+    <div class="panel-b"><p class="muted small">Creates a one-time temporary password and signs the account out of the change gate until they set a new one.</p>
+      <button class="btn">{{ icon('lock', 17) }} Reset password</button></div>
+  </form>
+</div>
+{% endblock %}

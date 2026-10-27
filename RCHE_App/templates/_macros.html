@@ -1,0 +1,40 @@
+{% macro icon(name, size=20) -%}
+<svg class="ic" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ ICONS[name]|safe }}</svg>
+{%- endmacro %}
+
+{% macro crest(w=38) -%}
+<svg width="{{ w }}" height="{{ (w * 1.16)|round|int }}" viewBox="0 0 48 56" aria-hidden="true">
+  <path d="M24 1.5 3.5 8.5v18c0 14 9.8 23.4 20.5 28.5 10.7-5.1 20.5-14.5 20.5-28.5v-18z" fill="#1747B8" stroke="#fff" stroke-width="2"/>
+  <path d="M24 1.5 3.5 8.5v8.5h41V8.5z" fill="#D6192F"/>
+  <text x="24" y="44" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="24" fill="#fff">R</text>
+</svg>
+{%- endmacro %}
+
+{% macro status(s) -%}
+{%- set m = {
+  'present': ('Present', 'ok'), 'late': ('Late', 'warn'), 'absent': ('Absent', 'err'),
+  'not_in': ('Not in yet', 'mute'), 'attended': ('Confirmed', 'ok'), 'pending': ('Awaiting', 'warn'),
+  'unattended': ('Unattended', 'err'), 'missed': ('Missed', 'err'), 'upcoming': ('Upcoming', 'mute'),
+  'approved': ('Approved', 'ok'), 'declined': ('Declined', 'err'), 'cancelled': ('Cancelled', 'mute')
+} -%}
+{%- set v = m.get(s, (s, 'mute')) -%}
+<span class="badge {{ v[1] }}">{{ v[0] }}</span>
+{%- endmacro %}
+
+{% macro person(name, sub='') -%}
+<div class="person"><span class="avatar sm">{{ name|initials }}</span><div><b>{{ name }}</b>{% if sub %}<span class="muted small">{{ sub }}</span>{% endif %}</div></div>
+{%- endmacro %}
+
+{% macro checkin_card() -%}
+<div class="panel"><div class="panel-b">
+  <div class="ci" id="ci-card">
+    <span class="ci-ic" id="ci-ic"></span>
+    <div class="grow"><b id="ci-title">Checking your status</b><span class="muted small" id="ci-sub">One moment.</span></div>
+    <button class="btn primary" id="ci-btn" hidden>Check in</button>
+    <button class="btn" id="co-btn" hidden>Check out</button>
+  </div>
+</div></div>
+{%- for n in ['check', 'wifi', 'alert'] %}
+<template data-icon="{{ n }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{{ ICONS[n]|safe }}</svg></template>
+{%- endfor %}
+{%- endmacro %}

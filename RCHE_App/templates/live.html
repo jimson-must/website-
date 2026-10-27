@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, status %}
+{% block title %}Live lessons{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Live lessons</h1><p>Every lesson in progress, updated every few seconds. A lesson not confirmed within the alert window notifies the Head of Academics.</p></div>
+</div>
+<div class="grid cols-2">
+  <div class="panel">
+    <div class="panel-h"><h3>In progress now</h3><span class="badge ok">Live</span></div>
+    <div data-live-url="{{ url_for('live_fragment') }}">{% include '_live_board.html' %}</div>
+  </div>
+  <div class="stack">
+    <div class="panel">
+      <div class="panel-h"><h3>Starting next</h3></div>
+      {% for l in live.next %}
+      <div class="row between" style="padding:12px 20px;border-bottom:1px solid var(--line-2)">
+        <div><b>{{ l.class_name }} &middot; {{ l.subject }}</b><div class="small muted">{{ l.eff_name }} &middot; {{ l.room }}</div></div>
+        <span class="num small">{{ l.start|hm }}</span>
+      </div>
+      {% else %}<div class="empty"><b>Nothing queued</b>No more lessons start today.</div>{% endfor %}
+    </div>
+    <div class="panel">
+      <div class="panel-h"><h3>Alerts sent today</h3><span class="badge {{ 'err' if live.alerts else 'mute' }}">{{ live.alerts|length }}</span></div>
+      {% for a in live.alerts %}
+      <div class="row between" style="padding:12px 20px;border-bottom:1px solid var(--line-2)">
+        <div><b>{{ a.class_name }} &middot; {{ a.subject }}</b><div class="small muted">{{ a.teacher }} &middot; {{ a.period }}</div></div>
+        {% if a.confirmed_at %}<span class="badge warn">Started late {{ a.confirmed_at[:5] }}</span>{% else %}<span class="badge err">Never confirmed</span>{% endif %}
+      </div>
+      {% else %}<div class="empty"><b>No alerts today</b>Every lesson has been confirmed in time.</div>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
