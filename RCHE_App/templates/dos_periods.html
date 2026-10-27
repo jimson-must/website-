@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+{% block title %}Periods and breaks{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Periods and breaks</h1><p>These times drive the lesson timer, the progress bar and the alerts. Use 24-hour time, for example 14:40.</p></div>
+  <a class="btn" href="{{ url_for('dos_timetable') }}">Back to editor</a>
+</div>
+<form method="post" class="panel">
+  <input type="hidden" name="_csrf" value="{{ csrf() }}">
+  <div class="scroll-x"><table class="tbl">
+    <thead><tr><th>Name</th><th>Starts</th><th>Ends</th><th>Break</th><th></th></tr></thead>
+    <tbody>
+    {% for p in periods %}
+      <tr>
+        <td><input type="text" name="label_{{ p.id }}" value="{{ p.label }}" maxlength="30" aria-label="Name"></td>
+        <td><input type="time" name="start_{{ p.id }}" value="{{ p.start_time }}" aria-label="Start"></td>
+        <td><input type="time" name="end_{{ p.id }}" value="{{ p.end_time }}" aria-label="End"></td>
+        <td><div class="checks"><label><input type="checkbox" name="break_{{ p.id }}" {{ 'checked' if p.is_break }}> Break</label></div></td>
+        <td><button class="btn sm danger" name="confirm" value="yes" formaction="{{ url_for('dos_period_delete', pid=p.id) }}" formmethod="post" formnovalidate data-confirm-btn
+             onclick="return confirm('Delete {{ p.label }} and every lesson in it?')">{{ icon('trash', 15) }}</button></td>
+      </tr>
+    {% endfor %}
+      <tr style="background:var(--blue-50)">
+        <td><input type="text" name="new_label" placeholder="New period name" maxlength="30"></td>
+        <td><input type="time" name="new_start"></td><td><input type="time" name="new_end"></td>
+        <td><div class="checks"><label><input type="checkbox" name="new_break"> Break</label></div></td><td></td>
+      </tr>
+    </tbody></table></div>
+  <div class="panel-b row" style="justify-content:flex-end"><button class="btn primary">Save periods</button></div>
+</form>
+{% endblock %}

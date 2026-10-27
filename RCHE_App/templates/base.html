@@ -1,0 +1,57 @@
+{% from '_macros.html' import icon, crest %}<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}{{ school_short }}{% endblock %} | {{ school_name }}</title>
+<meta name="theme-color" content="#0B1F44">
+<meta name="csrf" content="{{ csrf() }}">
+<link rel="manifest" href="{{ url_for('manifest') }}">
+<link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+<script>try{var t=localStorage.getItem('rche-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body data-now-s="{{ now_s }}">
+<div class="shell">
+  <aside class="side" aria-label="Main navigation">
+    <div class="brand">{{ crest(38) }}<div><b>{{ school_short }} Staff</b><span>{{ school_name }}</span></div></div>
+    <nav class="nav">
+      {% for item in nav %}
+      <a href="{{ item.url }}" class="{{ 'on' if item.active }}" {% if item.active %}aria-current="page"{% endif %}>{{ icon(item.icon, 19) }}<span>{{ item.label }}</span></a>
+      {% endfor %}
+    </nav>
+    <div class="side-foot">
+      <a class="me" href="{{ url_for('profile') }}"><span class="avatar">{{ user.full_name|initials }}</span><div><b>{{ user.full_name }}</b><span>{{ ROLE_LABELS[user.role] }}</span></div></a>
+      <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="_csrf" value="{{ csrf() }}">
+        <button class="nav-out btn ghost sm" style="width:100%;margin-top:8px;color:#C8D5F5;border-color:rgba(255,255,255,.16)">{{ icon('logout', 16) }} Sign out</button></form>
+    </div>
+  </aside>
+
+  <div class="main">
+    {% if demo_active %}<div class="demo-strip">{{ icon('clock', 16) }}<span>Demo clock is on. The app thinks it is <b>{{ demo_time }}</b>.</span>{% if user.role == 'admin' %}<a href="{{ url_for('admin_settings') }}" style="color:#fff;text-decoration:underline">Change</a>{% endif %}</div>{% endif %}
+    <header class="top">
+      <button class="iconbtn" id="menu-btn" aria-label="Open menu">{{ icon('menu') }}</button>
+      <div class="grow"><div class="title">{{ now_label }}</div></div>
+      <div class="clock" id="clock" aria-label="School time">--:--:--</div>
+      <button class="iconbtn" id="theme-btn" aria-label="Switch light or dark theme"><span class="i-sun" hidden>{{ icon('sun') }}</span><span class="i-moon">{{ icon('moon') }}</span></button>
+      <div style="position:relative">
+        <button class="iconbtn" id="bell-btn" aria-label="Notifications">{{ icon('bell') }}<span class="dot" id="bell-badge" {% if not unread %}hidden{% endif %}>{{ unread }}</span></button>
+        <div class="bell-panel" id="bell-panel" hidden>
+          <header><b>Notifications</b><button class="btn sm ghost" id="bell-read">Mark all read</button></header>
+          <div class="bell-list" id="bell-list"><div class="empty">Loading</div></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% for cat, m in msgs %}<div class="flash {{ cat }}" data-dismiss role="alert">{{ m }}</div>{% endfor %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

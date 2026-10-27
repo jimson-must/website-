@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, status, checkin_card %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Hello, {{ user.full_name|firstname }}</h1>
+  <p>{{ user.department }} department</p></div>
+</div>
+
+<div class="stack">
+  <section class="now" id="now-panel" aria-live="polite">
+    <div class="now-grid">
+      <div>
+        <div class="now-label" id="np-label">Loading</div>
+        <div class="now-title" id="np-title">&nbsp;</div>
+        <div class="now-meta" id="np-meta">&nbsp;</div>
+        <div id="np-bar" hidden>
+          <div class="bar" role="progressbar" aria-label="Lesson progress"><i id="np-fill"></i></div>
+          <div class="bar-meta"><span id="np-left"></span><span id="np-pct"></span></div>
+        </div>
+        <div class="row wrap" style="margin-top:6px">
+          <button class="btn green big" id="np-confirm" hidden>{{ icon('check', 20) }} I am in class</button>
+          <span class="small" id="np-confirmed" style="color:#7EE3A5"></span>
+        </div>
+      </div>
+      <div class="now-side">
+        <div class="now-label">Next lesson in</div>
+        <div class="count" id="np-count">&ndash;</div>
+        <div class="count-sub" id="np-next"></div>
+      </div>
+    </div>
+    <div class="ribbon" id="ribbon" aria-label="Your day"></div>
+  </section>
+
+  {{ checkin_card() }}
+
+  <div class="grid cols-2">
+    <div class="panel">
+      <div class="panel-h"><h3>Announcements</h3><a class="small" href="{{ url_for('announcements') }}">See all</a></div>
+      {% for a in anns %}
+      <div class="ann {{ 'urgent' if a.priority == 'urgent' }} {{ 'pinned' if a.pinned }} {{ 'new' if not a.is_read }}">
+        <h3>{{ a.title }}</h3>
+        <div class="ann-body small">{{ a.body|truncate(190) }}</div>
+        <div class="xs muted">{{ a.author }} &middot; {{ a.created_at|dtlabel }}</div>
+      </div>
+      {% else %}<div class="empty"><b>No announcements yet</b>Messages from the school office will appear here.</div>{% endfor %}
+    </div>
+
+    <div class="panel">
+      <div class="panel-h"><h3>Your last 30 days</h3><a class="small" href="{{ url_for('my_attendance') }}">Details</a></div>
+      <div class="panel-b grid" style="grid-template-columns:1fr 1fr;gap:12px">
+        <div class="kpi ok"><b>{{ stats.punctuality }}%</b><span>On time</span></div>
+        <div class="kpi"><b>{{ stats.lesson_rate }}%</b><span>Lessons confirmed</span></div>
+        <div class="kpi warn"><b>{{ stats.late }}</b><span>Late arrivals</span></div>
+        <div class="kpi err"><b>{{ stats.absent }}</b><span>Absences</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

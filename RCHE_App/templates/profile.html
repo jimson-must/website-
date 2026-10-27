@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+{% block title %}My account{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>My account</h1><p>{{ user.full_name }} &middot; {{ ROLE_LABELS[user.role] }}{% if user.department %} &middot; {{ user.department }}{% endif %}</p></div></div>
+<div class="grid cols-2">
+  <form method="post" class="panel" style="align-self:start">
+    <input type="hidden" name="_csrf" value="{{ csrf() }}">
+    <div class="panel-h"><h3>Change password</h3></div>
+    <div class="panel-b">
+      {% if user.must_change %}<div class="flash warn">Your password was set by the administrator. Choose your own to continue.</div>{% endif %}
+      <div class="field"><label for="p-cur">Current password</label><input id="p-cur" name="current" type="password" autocomplete="current-password" required></div>
+      <div class="field"><label for="p-new">New password</label><input id="p-new" name="new" type="password" autocomplete="new-password" minlength="8" required><div class="hint">At least 8 characters.</div></div>
+      <div class="field"><label for="p-again">Repeat new password</label><input id="p-again" name="again" type="password" autocomplete="new-password" minlength="8" required></div>
+      <button class="btn primary">{{ icon('lock', 17) }} Update password</button>
+    </div>
+  </form>
+  <div class="panel" style="align-self:start">
+    <div class="panel-h"><h3>This device</h3></div>
+    <div class="panel-b">
+      <p class="muted small">Desktop alerts pop up when a notification arrives while the app is open in a tab.</p>
+      <button class="btn" id="enable-notifs">Turn on desktop alerts</button>
+      <p class="muted small" style="margin-top:18px">Install on a phone: open the app in the browser, then choose "Add to Home screen". It opens full screen like a normal app.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

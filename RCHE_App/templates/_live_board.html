@@ -1,0 +1,31 @@
+{% from '_macros.html' import icon, status %}
+{% if not live.school_day %}
+  <div class="empty"><b>No school today</b>Live lessons appear on weekdays.</div>
+{% elif live.current %}
+  {% for l in live.current %}
+  {% set tone = 'err' if l.status == 'unattended' else 'warn' if l.status == 'pending' else 'ok' %}
+  {% set pct = ((l.elapsed / ((l.end - l.start).total_seconds() / 60)) * 100)|round|int %}
+  <div class="live-card {{ tone }}">
+    <div>
+      <b>{{ l.class_name }} &middot; {{ l.subject }}</b>
+      <div class="small muted">{{ l.eff_name }}{% if l.sub_id %} (cover for {{ l.teacher }}){% endif %} &middot; {{ l.room or 'No room' }} &middot; {{ l.start|hm }} to {{ l.end|hm }}</div>
+    </div>
+    <div style="text-align:right">
+      {{ status(l.status) }}
+      <div class="xs muted" style="margin-top:3px">
+        {% if l.status == 'attended' %}in class at {{ l.confirmed|hm }}{% else %}{{ l.elapsed }} min since start{% endif %}
+      </div>
+    </div>
+    <div class="mini-bar"><i style="width:{{ [pct, 100]|min }}%"></i></div>
+  </div>
+  {% endfor %}
+  <div class="panel-b small muted" style="border-top:1px solid var(--line-2)">
+    {{ live.counts.attended }} confirmed &middot; {{ live.counts.pending }} awaiting &middot; {{ live.counts.unattended }} unattended
+  </div>
+{% elif live.break %}
+  <div class="empty"><b>{{ live.break.label }}</b>Lessons resume at {{ live.break.end_time }}{% if live.next %}. Next up: {{ live.next|length }} lessons.{% endif %}</div>
+{% elif live.next %}
+  <div class="empty"><b>Between lessons</b>{{ live.next|length }} lessons start at {{ live.next_start|hm }}.</div>
+{% else %}
+  <div class="empty"><b>{{ 'Day complete' if live.total_today else 'No lessons scheduled' }}</b>{% if live.total_today %}{{ live.missed_today }} lesson{{ 's' if live.missed_today != 1 }} went unconfirmed today.{% endif %}</div>
+{% endif %}

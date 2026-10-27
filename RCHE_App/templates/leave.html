@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, status, person %}
+{% block title %}Leave{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Leave</h1><p>Approved leave is shown as "On leave" in attendance reports instead of absent.</p></div></div>
+
+{% if queue %}
+<div class="panel" style="margin-bottom:18px">
+  <div class="panel-h"><h3>Waiting for your decision</h3><span class="badge warn">{{ queue|length }}</span></div>
+  {% for l in queue %}
+  <div style="padding:16px 20px;border-bottom:1px solid var(--line-2)">
+    <div class="row between wrap">
+      <div>{{ person(l.full_name, l.department) }}
+        <div class="small" style="margin-top:6px"><b>{{ l.kind }}</b> &middot; {{ l.start_date|dlabel }}{% if l.end_date != l.start_date %} to {{ l.end_date|dlabel }}{% endif %}</div>
+        {% if l.reason %}<div class="small muted">{{ l.reason }}</div>{% endif %}</div>
+      <form method="post" action="{{ url_for('leave_decide', lid=l.id) }}" class="row wrap" style="gap:8px">
+        <input type="hidden" name="_csrf" value="{{ csrf() }}">
+        <input type="text" name="note" placeholder="Note (optional)" style="width:190px" maxlength="200" aria-label="Note">
+        <button class="btn sm green" name="decision" value="approved">Approve</button>
+        <button class="btn sm danger" name="decision" value="declined">Decline</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="grid cols-2">
+  <div class="panel">
+    <div class="panel-h"><h3>My requests</h3></div>
+    {% for l in mine %}
+    <div class="row between" style="padding:14px 20px;border-bottom:1px solid var(--line-2)">
+      <div><b>{{ l.kind }}</b><div class="small muted">{{ l.start_date|dlabel }}{% if l.end_date != l.start_date %} to {{ l.end_date|dlabel }}{% endif %}</div>
+        {% if l.decision_note %}<div class="small">"{{ l.decision_note }}"</div>{% endif %}</div>
+      <div class="row">{{ status(l.status) }}
+        {% if l.status == 'pending' %}<form method="post" action="{{ url_for('leave_cancel', lid=l.id) }}"><input type="hidden" name="_csrf" value="{{ csrf() }}"><button class="btn sm ghost">Cancel</button></form>{% endif %}</div>
+    </div>
+    {% else %}<div class="empty"><b>No requests yet</b>Use the form to ask for leave.</div>{% endfor %}
+  </div>
+
+  <form method="post" action="{{ url_for('leave_new') }}" class="panel" style="align-self:start">
+    <input type="hidden" name="_csrf" value="{{ csrf() }}">
+    <div class="panel-h"><h3>Request leave</h3></div>
+    <div class="panel-b">
+      <div class="field"><label for="l-kind">Type</label>
+        <select id="l-kind" name="kind"><option>Personal</option><option>Sick leave</option><option>Official duty</option><option>Study leave</option><option>Compassionate</option></select></div>
+      <div class="form-grid">
+        <div class="field"><label for="l-s">From</label><input id="l-s" type="date" name="start" value="{{ today }}" min="{{ today }}" required></div>
+        <div class="field"><label for="l-e">To</label><input id="l-e" type="date" name="end" value="{{ today }}" min="{{ today }}" required></div>
+      </div>
+      <div class="field"><label for="l-r">Reason</label><textarea id="l-r" name="reason" maxlength="300" style="min-height:76px"></textarea></div>
+      <button class="btn primary" style="width:100%">Send request</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, person %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Users</h1><p>Every staff member has an individual account. New accounts get a temporary password that must be changed at first sign-in.</p></div></div>
+<div class="grid cols-2">
+  <div class="panel"><div class="scroll-x"><table class="tbl">
+    <thead><tr><th>Name</th><th>Username</th><th>Role</th><th></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr style="{{ 'opacity:.55' if not u.active }}"><td>{{ person(u.full_name, u.department) }}</td><td class="num">{{ u.username }}</td>
+        <td>{{ ROLE_LABELS[u.role] }}{% if not u.active %} <span class="badge mute">Inactive</span>{% endif %}</td>
+        <td><a class="btn sm" href="{{ url_for('admin_user_edit', uid=u.id) }}">{{ icon('edit', 15) }} Edit</a></td></tr>
+    {% endfor %}
+    </tbody></table></div></div>
+
+  <form method="post" class="panel" style="align-self:start">
+    <input type="hidden" name="_csrf" value="{{ csrf() }}">
+    <div class="panel-h"><h3>Add a staff member</h3></div>
+    <div class="panel-b">
+      <div class="field"><label for="n-name">Full name</label><input id="n-name" name="full_name" type="text" required maxlength="80"></div>
+      <div class="form-grid">
+        <div class="field"><label for="n-user">Username</label><input id="n-user" name="username" type="text" required maxlength="30" autocapitalize="none"></div>
+        <div class="field"><label for="n-role">Role</label>
+          <select id="n-role" name="role">{% for k, v in ROLE_LABELS.items() %}<option value="{{ k }}" {{ 'selected' if k == 'teacher' }}>{{ v }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="n-dept">Department</label><input id="n-dept" name="department" type="text" maxlength="60"></div>
+        <div class="field"><label for="n-phone">Phone</label><input id="n-phone" name="phone" type="text" maxlength="30"></div>
+      </div>
+      <div class="field"><label for="n-mail">Email</label><input id="n-mail" name="email" type="email" maxlength="80"></div>
+      <button class="btn primary" style="width:100%">{{ icon('plus', 18) }} Create account</button>
+      <p class="hint">Teachers appear in timetables and attendance reports. Non-teaching staff never see teacher information.</p>
+    </div>
+  </form>
+</div>
+{% endblock %}
