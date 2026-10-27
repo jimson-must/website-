@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, status, person %}
+{% block title %}Attendance{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Attendance</h1><p>{{ date.strftime('%A, %d %B %Y') }}</p></div>
+  <div class="row wrap">
+    <a class="btn sm" href="{{ url_for('overview', date=prev, group=group) }}">Previous day</a>
+    <form method="get" class="row" style="gap:6px"><input type="hidden" name="group" value="{{ group }}">
+      <input type="date" name="date" value="{{ date.isoformat() }}" style="width:auto" aria-label="Date" onchange="this.form.submit()"></form>
+    <a class="btn sm" href="{{ url_for('overview', date=nxt, group=group) }}">Next day</a>
+    <a class="btn sm" href="{{ url_for('overview', date=date.isoformat(), group=group, export='csv') }}">{{ icon('download', 16) }} CSV</a>
+    {% if user.role in ('hoa', 'principal', 'admin') and group == 'teacher' %}
+    <form method="post" action="{{ url_for('reports_generate') }}"><input type="hidden" name="_csrf" value="{{ csrf() }}"><input type="hidden" name="date" value="{{ date.isoformat() }}">
+      <button class="btn sm primary">{{ icon('file', 16) }} PDF for this day</button></form>
+    {% endif %}
+  </div>
+</div>
+
+{% if user.role in ('admin', 'principal') %}
+<div class="tabs"><a href="{{ url_for('overview', date=date.isoformat(), group='teacher') }}" class="{{ 'on' if group == 'teacher' }}">Teachers</a>
+  <a href="{{ url_for('overview', date=date.isoformat(), group='staff') }}" class="{{ 'on' if group == 'staff' }}">Non-teaching staff</a></div>
+{% endif %}
+
+<div class="stack">
+  <div class="grid cols-4">
+    <div class="kpi ok"><b>{{ summary.present }}</b><span>Present of {{ summary.total }}</span></div>
+    <div class="kpi warn"><b>{{ summary.late }}</b><span>Late</span></div>
+    <div class="kpi err"><b>{{ summary.absent + summary.not_in }}</b><span>{{ 'Absent' if summary.absent else 'Not in yet' }}</span></div>
+    <div class="kpi"><b>{{ summary.rate }}%</b><span>Attendance rate</span></div>
+  </div>
+  <div class="panel"><div class="scroll-x"><table class="tbl">
+    <thead><tr><th>Name</th><th>Check-in</th><th>Check-out</th>{% if group == 'teacher' %}<th>Lessons</th>{% endif %}<th>Status</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr><td>{{ person(r.user.full_name, r.user.department) }}</td><td class="num">{{ r.check_in or '-' }}</td><td class="num">{{ r.check_out or '-' }}</td>
+        {% if group == 'teacher' %}<td class="num">{{ r.attended }} / {{ r.scheduled }}{% if r.missed %} <span class="badge err">{{ r.missed }} missed</span>{% endif %}</td>{% endif %}
+        <td>{{ status(r.status) }}</td></tr>
+    {% else %}<tr><td colspan="5"><div class="empty"><b>No staff in this group</b></div></td></tr>{% endfor %}
+    </tbody></table></div></div>
+
+  {% if group == 'teacher' and alerts %}
+  <div class="panel"><div class="panel-h"><h3>Lesson alerts</h3></div>
+    {% for a in alerts %}
+    <div class="row between" style="padding:12px 20px;border-bottom:1px solid var(--line-2)">
+      <div><b>{{ a.class_name }} &middot; {{ a.subject }}</b><div class="small muted">{{ a.teacher }} &middot; {{ a.period }}, {{ a.start_time }}</div></div>
+      {% if a.confirmed_at %}<span class="badge warn">Started late {{ a.confirmed_at[:5] }}</span>{% else %}<span class="badge err">Never confirmed</span>{% endif %}
+    </div>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

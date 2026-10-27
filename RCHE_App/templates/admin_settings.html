@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Settings</h1><p>School details, attendance rules, Wi-Fi verification and presentation tools.</p></div></div>
+<div class="grid cols-2">
+  <form method="post" class="panel" style="align-self:start">
+    <input type="hidden" name="_csrf" value="{{ csrf() }}">
+    <div class="panel-h"><h3>School and rules</h3></div>
+    <div class="panel-b">
+      <div class="form-grid">
+        <div class="field"><label for="s-name">School name</label><input id="s-name" name="school_name" type="text" value="{{ s.school_name }}" maxlength="80"></div>
+        <div class="field"><label for="s-short">Short name</label><input id="s-short" name="school_short" type="text" value="{{ s.school_short }}" maxlength="12"></div>
+        <div class="field"><label for="s-late">Late after (HH:MM)</label><input id="s-late" name="late_after" type="time" value="{{ s.late_after }}"><div class="hint">Check-ins after this minute count as late.</div></div>
+        <div class="field"><label for="s-rep">Daily report time</label><input id="s-rep" name="report_time" type="time" value="{{ s.report_time }}"><div class="hint">The PDF is made at this time on school days.</div></div>
+        <div class="field"><label for="s-un">Alert after (minutes)</label><input id="s-un" name="unattended_minutes" type="number" min="5" max="90" value="{{ s.unattended_minutes }}"><div class="hint">Unconfirmed lessons alert the Head of Academics.</div></div>
+        <div class="field"><label for="s-early">Confirm window opens (minutes before)</label><input id="s-early" name="confirm_early_minutes" type="number" min="0" max="30" value="{{ s.confirm_early_minutes }}"></div>
+      </div>
+      <div class="field"><label for="s-cls">Classes (comma separated)</label><input id="s-cls" name="classes" type="text" value="{{ s.classes }}"></div>
+
+      <h3 style="margin:22px 0 10px">Wi-Fi verification</h3>
+      <div class="checks field">
+        <label><input type="checkbox" name="enforce_wifi" {{ 'checked' if s.enforce_wifi == '1' }}> Only allow check-in from the school network</label>
+        <label><input type="checkbox" name="auto_checkin" {{ 'checked' if s.auto_checkin == '1' }}> Check in automatically when a teacher opens the app on Wi-Fi</label>
+      </div>
+      <div class="field"><label for="s-net">School network ranges</label><input id="s-net" name="allowed_subnets" type="text" value="{{ s.allowed_subnets }}">
+        <div class="hint">Comma separated, for example 192.168.1.0/24. This device is connecting from <b>{{ my_ip }}</b>.</div></div>
+      <div class="row wrap"><button class="btn primary">Save settings</button>
+        <button class="btn" name="use_my_network" value="1">{{ icon('wifi', 17) }} Use this device's network</button></div>
+    </div>
+  </form>
+
+  <div class="stack">
+    <form method="post" action="{{ url_for('demo_clock') }}" class="panel">
+      <input type="hidden" name="_csrf" value="{{ csrf() }}">
+      <div class="panel-h"><h3>Demo clock</h3><span class="badge {{ 'err' if demo_active else 'mute' }}">{{ 'On' if demo_active else 'Off' }}</span></div>
+      <div class="panel-b">
+        <p class="muted small">Jump the whole app to any school day and time to show lessons in progress, the countdown and alerts. The app thinks it is <b>{{ now.strftime('%a %d %b, %H:%M') }}</b>.</p>
+        <div class="field"><label for="d-when">Pretend it is</label><input id="d-when" name="when" type="datetime-local" value="{{ real }}"></div>
+        <div class="row wrap"><button class="btn primary">Set demo clock</button><button class="btn" name="reset" value="1">Back to real time</button></div>
+      </div>
+    </form>
+    <div class="panel">
+      <div class="panel-h"><h3>Demo data for today</h3></div>
+      <div class="panel-b">
+        <p class="muted small">Fill today with sample arrivals and confirmed lessons so every screen has something to show. Clear it again before real use.</p>
+        <div class="row wrap">
+          <form method="post" action="{{ url_for('demo_populate') }}"><input type="hidden" name="_csrf" value="{{ csrf() }}"><button class="btn primary">Add sample attendance</button></form>
+          <form method="post" action="{{ url_for('demo_clear') }}" data-confirm="Delete all of today's attendance records?"><input type="hidden" name="_csrf" value="{{ csrf() }}"><button class="btn danger">Clear today</button></form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Audit log</h1><p>The last 250 actions: sign-ins, timetable changes, accounts, settings and reports.</p></div></div>
+<div class="panel"><div class="scroll-x"><table class="tbl">
+  <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Detail</th><th>From</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr><td class="num">{{ r.created_at|dtlabel }}</td><td>{{ r.username or 'system' }}</td><td><span class="badge {{ 'err' if 'failed' in r.action else 'info' }}">{{ r.action }}</span></td><td class="small">{{ r.detail }}</td><td class="num small muted">{{ r.ip }}</td></tr>
+  {% else %}<tr><td colspan="5"><div class="empty"><b>Nothing logged yet</b></div></td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endblock %}
